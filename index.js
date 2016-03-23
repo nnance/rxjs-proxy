@@ -1,8 +1,14 @@
 'use strict'
 
 const Rx = require('rx')
+const Cycle = require('@cycle/core')
+const http = require('http')
 
+const requests_ = new Rx.Subject()
+const hostname = '127.0.0.1'
+const port = 1337
 const httpOkay = 200
+
 
 function main(sources) {
   return {
@@ -10,45 +16,22 @@ function main(sources) {
   }
 }
 
-function makeHttpEffect() {
-  const requests_ = new Rx.Subject()
-  return {
-    writeEffect: model_ => {
-      model_.subscribe(e => {
-        e.res.writeHead(httpOkay, { 'Content-Type': 'text/plain' })
-        e.res.end('Hello World\n')
-      })
-      return requests_
-    },
-    serverCallback: (req, res) => {
-      requests_.onNext({ req, res })
-    },
-    readEffect: requests_
-  }
-}
+// function writeEffect(model_) {
+//   model_.subscribe(e => {
+//     e.res.writeHead(httpOkay, { 'Content-Type': 'text/plain' })
+//     e.res.end('Hello World\n')
+//   })
+//   return requests_
+// }
 
-const httpEffect = makeHttpEffect()
 const drivers = {
-  HTTP: httpEffect
+  HTTP: requests_
+  // Response: writeEffect
 }
 
-function run(mainFunc, driversObj) {
-  const sources = {
-    HTTP: drivers.HTTP.readEffect
-  }
-  const sinks = mainFunc(sources)
-  Object.keys(driversObj).forEach(key => {
-    drivers[key].writeEffect(sinks[key])
-  })
-}
-
-run(main, drivers)
-
-const http = require('http')
-const hostname = '127.0.0.1'
-const port = 1337
-
-http.createServer(httpEffect.serverCallback)
+http.createServer((req, res) => requests_.onNext({req, res}))
   .listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`)
   })
+
+Cycle.run(main, drivers)
