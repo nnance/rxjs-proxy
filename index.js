@@ -1,37 +1,33 @@
 'use strict'
 
 const Rx = require('rx')
-const Cycle = require('@cycle/core')
-const http = require('http')
+const RxNode = require('rx-node')
 
-const requests_ = new Rx.Subject()
+const http = require('http')
+const request = require('request')
+
 const hostname = '127.0.0.1'
 const port = 1337
 const httpOkay = 200
 
 
-function main(sources) {
-  return {
-    HTTP: sources.HTTP.tap(e => console.log('request to', e.req.url))
-  }
+// Create an array of Rx observables
+function makeRequest(endpoints) {
+  return endpoints.map(path => RxNode.fromReadableStream(request(`http://jsonplaceholder.typicode.com/${path}`)))
 }
 
-// function writeEffect(model_) {
-//   model_.subscribe(e => {
-//     e.res.writeHead(httpOkay, { 'Content-Type': 'text/plain' })
-//     e.res.end('Hello World\n')
-//   })
-//   return requests_
-// }
-
-const drivers = {
-  HTTP: requests_
-  // Response: writeEffect
+// process observables
+function processResult(requests$) {
+  return Rx.Observable.concat(requests$)
 }
 
-http.createServer((req, res) => requests_.onNext({req, res}))
+function sendHello(req, res) {
+  res.writeHead(httpOkay, { 'Content-Type': 'application/json' })
+  const requests$ = makeRequest([ 'users', 'todos', 'posts' ])
+  RxNode.writeToStream(processResult(requests$), res, 'utf-8')
+}
+
+http.createServer(sendHello)
   .listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`)
   })
-
-Cycle.run(main, drivers)
