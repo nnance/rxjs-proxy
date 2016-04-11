@@ -1,15 +1,17 @@
 'use strict'
 
+const Hapi = require('hapi')
+const request = require('request')
+const Writable = require('stream').Writable
+
 const Rx = require('rx')
 const RxNode = require('rx-node')
 
-const http = require('http')
-const request = require('request')
-
-const hostname = '127.0.0.1'
+const host = '127.0.0.1'
 const port = 3000
-const httpOkay = 200
 
+const server = new Hapi.Server()
+server.connection({ port, host })
 
 // Create an array of Rx observables
 function makeRequests(endpoints) {
@@ -20,20 +22,39 @@ function makeRequests(endpoints) {
 }
 
 // process observables
-function processResult(requests$) {
+function processResults(requests$) {
   return Rx.Observable.concat(requests$)
 }
 
-function handleRequest(req, res) {
-  res.writeHead(httpOkay, { 'Content-Type': 'application/json' })
-  const requests$ = makeRequests([ 'users', 'todos', 'posts' ])
-  RxNode.writeToStream(processResult(requests$), res, 'utf-8')
+function apiProxy(endpoints) {
+  return (req, reply) => {
+    const stream = new Writable()
+    const requests$ = makeRequests(endpoints)
+    RxNode.writeToStream(processResults(requests$), stream, 'utf-8')
+    reply(null, stream)
+  }
 }
 
-function logServerStatus() {
-  console.log(`Server running at http://${hostname}:${port}/`)
-}
+server.route({
+  path: '/',
+  method: 'GET',
+  config: {
+    pre: [
+      {
+        method: apiProxy([ 'users', 'todos', 'posts' ]),
+        assign: 'stream'
+      }
+    ]
+  },
+  handler: (req, reply) => {
+    reply(req.pre.stream)
+  }
+})
 
-http
-  .createServer(handleRequest)
-  .listen(port, hostname, logServerStatus)
+server.start(err => {
+  if (err) {
+    throw err
+  }
+
+  console.log('Server running at:', server.info.uri)
+})
