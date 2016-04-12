@@ -16,11 +16,11 @@
   "author": "Nick Nance",
   "license": "ISC",
   "dependencies": {
-    "@cycle/core": "^6.0.3",
     "hapi": "^13.3.0",
     "request": "^2.69.0",
     "rx": "^4.1.0",
-    "rx-node": "^1.0.2"
+    "rx-node": "^1.0.2",
+    "through2": "^2.0.1"
   },
   "devDependencies": {
     "babel-eslint": "^5.0.0",

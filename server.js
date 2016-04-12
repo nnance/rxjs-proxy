@@ -2,7 +2,7 @@
 
 const Hapi = require('hapi')
 const request = require('request')
-const Writable = require('stream').Writable
+const through = require('through2')
 
 const Rx = require('rx')
 const RxNode = require('rx-node')
@@ -28,9 +28,10 @@ function processResults(requests$) {
 
 function apiProxy(endpoints) {
   return (req, reply) => {
-    const stream = new Writable()
     const requests$ = makeRequests(endpoints)
-    RxNode.writeToStream(processResults(requests$), stream, 'utf-8')
+    const results = processResults(requests$)
+    const stream = through()
+    RxNode.writeToStream(results, stream, 'utf-8')
     reply(null, stream)
   }
 }
