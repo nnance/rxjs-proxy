@@ -1,16 +1,14 @@
-'use strict'
+import { Server } from 'hapi'
+import * as request from 'request'
+import * as through from 'through2'
 
-const Hapi = require('hapi')
-const request = require('request')
-const through = require('through2')
-
-const Rx = require('rx')
+import  { Observable } from '@reactivex/rxjs'
 const RxNode = require('rx-node')
 
 const host = '127.0.0.1'
 const port = 3000
 
-const server = new Hapi.Server()
+const server = new Server()
 server.connection({ port, host })
 
 // Create an array of Rx observables
@@ -23,7 +21,7 @@ function makeRequests(endpoints) {
 
 // process observables
 function processResults(requests$) {
-  return Rx.Observable.concat(requests$)
+  return Observable.concat(requests$)
 }
 
 function apiProxy(endpoints) {

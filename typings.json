@@ -1,0 +1,11 @@
+{
+  "name": "rxjs-proxy",
+  "version": false,
+  "dependencies": {},
+  "ambientDependencies": {
+    "hapi": "registry:dt/hapi#13.0.0+20160406115650",
+    "node": "registry:dt/node#4.0.0+20160412142033",
+    "request": "registry:dt/request#0.0.0+20160316155526",
+    "through2": "registry:dt/through2#2.0.0+20160317120654"
+  }
+}
